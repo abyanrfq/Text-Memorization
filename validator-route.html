@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorized Master</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #dc2626;
+            --accent: #10b981;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --surface-light: #f1f5f9;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --correct: #16a34a;
+            --incorrect: #dc2626;
+            --gold: #d97706;
+            --dark-gold: #b45309;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            background: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            height: 95vh;
+            background: var(--surface);
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: 500px 1fr;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            background: var(--surface-light);
+            padding: 25px;
+            border-right: 2px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .website-title {
+            color: var(--dark-gold);
+            font-size: 2rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .reference-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            margin-top: 10px;
+        }
+
+        .section-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .arrow-down {
+            color: var(--primary);
+            font-size: 0.9rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-3px);
+            }
+            60% {
+                transform: translateY(-2px);
+            }
+        }
+
+        .reference-editor {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            color: var(--text);
+            resize: none;
+            height: 150px;
+            outline: none;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .reference-editor:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .submit-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 5px;
+        }
+
+        .submit-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .memorization-box {
+            background: linear-gradient(135deg, var(--surface) 0%, var(--surface-light) 100%);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-top: 5px;
+        }
+
+        .memorization-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .memorization-label {
+            color: var(--text);
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .memorization-icon {
+            font-size: 0.8rem;
+        }
+
+        .mode-status {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+        }
+
+        .mode-status.no-see {
+            background: var(--accent);
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .toggle-switch {
+            width: 48px;
+            height: 24px;
+            background: var(--border);
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::after {
+            left: 26px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card.highlight {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .sound-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            margin-top: 8px;
+        }
+
+        .sound-label {
+            color: var(--text);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .main-content {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .typing-section {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .current-line-container {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .current-line {
+            font-size: 20px;
+            color: var(--text);
+            text-align: center;
+            line-height: 1.5;
+            font-family: 'Fira Code', monospace;
+            font-weight: 500;
+        }
+
+        .empty-line {
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 16px;
+        }
+
+        .input-container {
+            background: var(--surface);
+            border: 3px solid var(--primary);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+                border-color: var(--primary);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+                border-color: var(--primary-dark);
+            }
+            100% {
+                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+                border-color: var(--primary);
+            }
+        }
+
+        .input-container:focus-within {
+            border-color: var(--primary-dark);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 4px 20px rgba(37, 99, 235, 0.3);
+            animation: none;
+        }
+
+        #userInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            font-family: 'Fira Code', monospace;
+            font-size: 18px;
+            color: var(--primary);
+            outline: none;
+            padding: 8px 0;
+            font-weight: 500;
+        }
+
+        #userInput::placeholder {
+            color: var(--text-secondary);
+            font-weight: normal;
+            font-size: 14px;
+        }
+
+        .line-feedback {
+            font-size: 24px;
+            min-width: 40px;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+
+        .line-feedback.show {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .completed-section {
+            background: var(--surface-light);
+            border-radius: 12px;
+            padding: 15px;
+            flex: 1;
+            min-height: 320px;
+            max-height: 380px;
+            border: 2px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .completed-title {
+            color: var(--text);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .completed-lines-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .completed-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 13px;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .completed-line:hover {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .line-text {
+            font-family: 'Fira Code', monospace;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .empty-line-indicator {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-family: 'Fira Code', monospace;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        .completed-lines-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .completed-lines-container::-webkit-scrollbar-track {
+            background: var(--surface-light);
+            border-radius: 3px;
+        }
+
+        .completed-lines-container::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .completed-lines-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        .completed-lines-container {
+            scroll-behavior: smooth;
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background: var(--primary);
+            margin-left: 2px;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+                min-height: 95vh;
+            }
+            
+            .sidebar {
+                border-right: none;
+                border-bottom: 2px solid var(--border);
+            }
+            
+            .main-content {
+                height: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 12px;
+            }
+            
+            .sidebar, .main-content {
+                padding: 15px;
+            }
+            
+            .website-title {
+                font-size: 1.5rem;
+            }
+            
+            .current-line {
+                font-size: 16px;
+            }
+            
+            #userInput {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="website-title">MEMORIZED MASTER</div>
+            
+            <div class="reference-header">
+                <div class="section-label">Put your text here</div>
+                <div class="arrow-down">↓</div>
+            </div>
+            <textarea class="reference-editor" id="referenceInput" placeholder="Paste or type your text here... (Empty lines are allowed)">en
+conf t
+int gi0/0
+ip help 10.1.1.2
+end
+
+en
+conf t
+ip dhcp excluded 192.168.10.1 192.168.10.10
+ip dhcp excluded 192.168.30.1 192.168.30.10
+ip dhcp pool R1-LAN
+net 192.168.10.0 255.255.255.0
+def 192.168.10.1
+dns 192.168.20.254
+ip dhcp pool R3-LAN
+net 192.168.30.0 255.255.255.0
+def 192.168.30.1
+dns 192.168.20.254
+int gi0/1
+ip add dhcp
+no sh
+end
+
+en
+conf t
+int gi0/0
+ip help 10.2.2.2
+end</textarea>
+
+            <button class="submit-btn" id="submitReference">SUBMIT REFERENCE</button>
+
+            <div class="memorization-box">
+                <div class="memorization-header">
+                    <div class="memorization-label">
+                        <span class="memorization-icon">🧠</span>
+                        MEMORIZATION MODE
+                    </div>
+                    <div class="mode-status" id="modeStatus">SEE MODE</div>
+                </div>
+                <div class="toggle-container">
+                    <div class="toggle-label">VISIBILITY</div>
+                    <div class="toggle-switch" id="modeToggle"></div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card" id="accuracyCard">
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">ACCURACY</div>
+                </div>
+                <div class="stat-card" id="linesCard">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">LINES DONE</div>
+                </div>
+            </div>
+
+            <div class="sound-toggle">
+                <div class="sound-label">SOUND EFFECTS</div>
+                <div class="toggle-switch active" id="soundToggle"></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="typing-section">
+                <div class="current-line-container">
+                    <div class="current-line" id="currentLineDisplay">
+                        <span id="currentLineText">Click SUBMIT REFERENCE to start...</span>
+                        <span class="typing-cursor"></span>
+                    </div>
+                </div>
+                
+                <div class="input-container">
+                    <input type="text" id="userInput" placeholder="Type the current line above...">
+                    <div class="line-feedback" id="lineFeedback"></div>
+                </div>
+            </div>
+
+            <div class="completed-section">
+                <div class="completed-title">COMPLETED LINES</div>
+                <div class="completed-lines-container" id="completedLines">
+                    <div class="completed-line" style="justify-content: center; color: var(--text-secondary); font-style: italic;">
+                        Completed lines will appear here...
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" id="restartBtn">
+                    <span>RESTART</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MemorizedType {
+            constructor() {
+                this.referenceInput = document.getElementById('referenceInput');
+                this.userInput = document.getElementById('userInput');
+                this.currentLineText = document.getElementById('currentLineText');
+                this.lineFeedback = document.getElementById('lineFeedback');
+                this.completedLines = document.getElementById('completedLines');
+                this.restartBtn = document.getElementById('restartBtn');
+                this.soundToggle = document.getElementById('soundToggle');
+                this.modeToggle = document.getElementById('modeToggle');
+                this.modeStatus = document.getElementById('modeStatus');
+                this.submitReference = document.getElementById('submitReference');
+                
+                this.accuracyCard = document.getElementById('accuracyCard');
+                this.linesCard = document.getElementById('linesCard');
+
+                this.soundsEnabled = true;
+                this.seeMode = true;
+                this.audioContext = null;
+                this.lastSoundTime = 0;
+                this.soundCooldown = 50;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.userInput.disabled = true;
+                this.updateModeDisplay();
+            }
+
+            startPractice() {
+                this.referenceText = this.referenceInput.value;
+                
+                // Validasi input kosong
+                if (!this.referenceText.trim()) {
+                    alert("Please enter some text to practice!");
+                    return;
+                }
+                
+                this.lines = this.referenceText.split('\n');
+                this.currentLineIndex = 0;
+                this.completedLinesList = [];
+                this.correctChars = 0;
+                this.totalChars = 0;
+                
+                this.updateCurrentLine();
+                this.updateCompletedLines();
+                this.updateStats();
+                this.userInput.value = '';
+                this.hideFeedback();
+                this.userInput.disabled = false;
+                this.focusInput();
+            }
+
+            updateCurrentLine() {
+                if (this.currentLineIndex < this.lines.length) {
+                    const currentLine = this.lines[this.currentLineIndex];
+                    if (this.seeMode) {
+                        if (currentLine.trim() === '') {
+                            this.currentLineText.innerHTML = '<span class="empty-line">[Empty Line - Press ENTER]</span>';
+                        } else {
+                            this.currentLineText.textContent = currentLine;
+                        }
+                    } else {
+                        this.currentLineText.innerHTML = '<span class="empty-line">[Type from memory]</span>';
+                    }
+                } else {
+                    this.currentLineText.textContent = "🎉 All lines completed!";
+                    this.userInput.disabled = true;
+                    this.fireConfetti();
+                }
+            }
+
+            fireConfetti() {
+                // Fire confetti when all lines are completed
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            playSound(type) {
+                if (!this.soundsEnabled) return;
+                
+                const now = Date.now();
+                if (now - this.lastSoundTime < this.soundCooldown) {
+                    return;
+                }
+                this.lastSoundTime = now;
+                
+                try {
+                    if (!this.audioContext) {
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    
+                    // Resume audio context if it's suspended (browser policy)
+                    if (this.audioContext.state === 'suspended') {
+                        this.audioContext.resume();
+                    }
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    if (type === 'correct-char') {
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(1000, this.audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.06, this.audioContext.currentTime);
+                    } else if (type === 'incorrect-char') {
+                        oscillator.type = 'sawtooth';
+                        oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+                    } else if (type === 'line-correct') {
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.1);
+                        gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+                    } else if (type === 'line-incorrect') {
+                        oscillator.type = 'sawtooth';
+                        oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(150, this.audioContext.currentTime + 0.3);
+                        gainNode.gain.setValueAtTime(0.12, this.audioContext.currentTime);
+                    } else if (type === 'enter-press') {
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(600, this.audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(800, this.audioContext.currentTime + 0.1);
+                        gainNode.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+                    }
+                    
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + 0.2);
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+
+            showFeedback(emoji, isCorrect) {
+                this.lineFeedback.textContent = emoji;
+                this.lineFeedback.classList.add('show');
+                
+                if (isCorrect) {
+                    this.playSound('line-correct');
+                    this.accuracyCard.classList.add('celebrate');
+                    setTimeout(() => this.accuracyCard.classList.remove('celebrate'), 500);
+                } else {
+                    this.playSound('line-incorrect');
+                }
+                
+                setTimeout(() => {
+                    this.hideFeedback();
+                }, 1000);
+            }
+
+            hideFeedback() {
+                this.lineFeedback.classList.remove('show');
+            }
+
+            checkLine() {
+                if (this.currentLineIndex >= this.lines.length) return;
+                
+                this.playSound('enter-press');
+                
+                const currentLine = this.lines[this.currentLineIndex];
+                const userInput = this.userInput.value;
+                const isCorrect = currentLine.trim() === '' ? userInput === '' : userInput === currentLine;
+                
+                // Perbaikan perhitungan akurasi
+                if (currentLine.trim() !== '') {
+                    for (let i = 0; i < Math.min(userInput.length, currentLine.length); i++) {
+                        if (userInput[i] === currentLine[i]) {
+                            this.correctChars++;
+                        }
+                        this.totalChars++;
+                    }
+                    
+                    // Tambahkan karakter yang tidak diketik
+                    if (userInput.length < currentLine.length) {
+                        this.totalChars += (currentLine.length - userInput.length);
+                    }
+                }
+                
+                this.completedLinesList.push({
+                    text: currentLine,
+                    userInput: userInput,
+                    correct: isCorrect
+                });
+                
+                this.showFeedback(isCorrect ? '✅' : '❌', isCorrect);
+                
+                this.currentLineIndex++;
+                this.userInput.value = '';
+                
+                this.updateCurrentLine();
+                this.updateCompletedLines();
+                this.updateStats();
+            }
+
+            updateCompletedLines() {
+                this.completedLines.innerHTML = '';
+                
+                if (this.completedLinesList.length === 0) {
+                    this.completedLines.innerHTML = `
+                        <div class="completed-line" style="justify-content: center; color: var(--text-secondary); font-style: italic;">
+                            Completed lines will appear here...
+                        </div>
+                    `;
+                    return;
+                }
+                
+                this.completedLinesList.forEach((line, index) => {
+                    const lineEl = document.createElement('div');
+                    lineEl.className = 'completed-line';
+                    
+                    if (line.text.trim() === '') {
+                        lineEl.innerHTML = `
+                            <span style="font-size: 14px;">${line.correct ? '✅' : '❌'}</span>
+                            <span class="line-text empty-line-indicator">
+                                [Empty Line]
+                            </span>
+                        `;
+                    } else {
+                        lineEl.innerHTML = `
+                            <span style="font-size: 14px;">${line.correct ? '✅' : '❌'}</span>
+                            <span class="line-text" style="color: ${line.correct ? 'var(--correct)' : 'var(--incorrect)'};">
+                                ${line.text}
+                            </span>
+                        `;
+                    }
+                    this.completedLines.appendChild(lineEl);
+                });
+                
+                setTimeout(() => {
+                    const container = this.completedLines;
+                    container.scrollTop = container.scrollHeight;
+                }, 100);
+            }
+
+            updateStats() {
+                const accuracy = this.totalChars > 0 ? 
+                    Math.round((this.correctChars / this.totalChars) * 100) : 100;
+                
+                this.accuracyCard.querySelector('.stat-value').textContent = accuracy + '%';
+                this.linesCard.querySelector('.stat-value').textContent = this.completedLinesList.length;
+                
+                this.accuracyCard.classList.toggle('highlight', accuracy >= 90);
+                this.linesCard.classList.toggle('highlight', this.completedLinesList.length > 0);
+            }
+
+            updateModeDisplay() {
+                if (this.seeMode) {
+                    this.modeStatus.textContent = "SEE MODE";
+                    this.modeStatus.className = "mode-status";
+                } else {
+                    this.modeStatus.textContent = "HIDE MODE";
+                    this.modeStatus.className = "mode-status no-see";
+                }
+                this.modeToggle.classList.toggle('active', !this.seeMode);
+                this.updateCurrentLine();
+            }
+
+            toggleMode() {
+                this.seeMode = !this.seeMode;
+                this.updateModeDisplay();
+            }
+
+            toggleSound() {
+                this.soundsEnabled = !this.soundsEnabled;
+                this.soundToggle.classList.toggle('active', this.soundsEnabled);
+            }
+
+            focusInput() {
+                this.userInput.focus();
+            }
+
+            setupEventListeners() {
+                this.userInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.checkLine();
+                    }
+                });
+
+                this.userInput.addEventListener('input', (e) => {
+                    const currentChar = e.data;
+                    if (currentChar && this.currentLineIndex < this.lines.length) {
+                        const currentLine = this.lines[this.currentLineIndex];
+                        const currentIndex = this.userInput.value.length - 1;
+                        
+                        if (currentIndex < currentLine.length && currentLine.trim() !== '') {
+                            if (currentChar === currentLine[currentIndex]) {
+                                this.playSound('correct-char');
+                            } else {
+                                this.playSound('incorrect-char');
+                            }
+                        }
+                    }
+                });
+
+                this.restartBtn.addEventListener('click', () => this.startPractice());
+                this.submitReference.addEventListener('click', () => this.startPractice());
+                this.soundToggle.addEventListener('click', () => this.toggleSound());
+                this.modeToggle.addEventListener('click', () => this.toggleMode());
+
+                this.userInput.addEventListener('focus', () => {
+                    if (this.userInput.disabled) {
+                        this.submitReference.focus();
+                    }
+                });
+                
+                document.addEventListener('click', (e) => {
+                    if (e.target !== this.referenceInput && !this.userInput.disabled) {
+                        this.focusInput();
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new MemorizedType();
+        });
+    </script>
+</body>
+</html>
